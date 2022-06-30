@@ -3,7 +3,7 @@
 use iced::{
     button, executor, scrollable, text_input, time, window, Align, Application, Button, Clipboard,
     Column, Command, Container, Element, Length, Row, Scrollable, Settings, Space, Subscription,
-    Svg, Text, TextInput,
+    Svg, Text, TextInput, slider, Slider,
 };
 use itertools::Itertools;
 use std::{
@@ -43,6 +43,7 @@ enum Message {
     UpdateFound(Option<String>),
     UpdatePressed,
     JoyconRotate(String, bool),
+    SliderUpdate(String, f32),
 }
 
 #[derive(Default)]
@@ -141,7 +142,7 @@ impl Application for MainState {
                     .local
                     .joycon
                     .entry(serial_number.clone())
-                    .or_insert(crate::settings::Joycon { rotation: 0 });
+                    .or_insert(crate::settings::Joycon { rotation: 0, degrees_offset: 0.0 });
                 entry.rotation += if direction { 90 } else { -90 };
                 entry.rotation %= 360;
                 if entry.rotation < 0 {
@@ -151,6 +152,18 @@ impl Application for MainState {
                     "Offset for joycon {} set to: {:?}°",
                     serial_number, entry.rotation
                 );
+                self.settings.save();
+            }
+            Message::SliderUpdate(serial_number, degrees) => {
+                let entry = self
+                    .settings
+                    .local
+                    .joycon
+                    .entry(serial_number.clone())
+                    .or_insert(crate::settings::Joycon { rotation: 0, degrees_offset: 0.0 });
+                entry.degrees_offset = degrees;
+                println!("Scale correction for joycon {} set to: {}°", serial_number, degrees);
+                // TODO: save only on slider release?
                 self.settings.save();
             }
         }
@@ -328,6 +341,7 @@ fn top_bar<'a>(
 struct JoyconBox {
     left: button::State,
     right: button::State,
+    slider: slider::State,
     pub status: JoyconStatus,
 }
 
@@ -336,6 +350,7 @@ impl JoyconBox {
         Self {
             left: button::State::new(),
             right: button::State::new(),
+            slider: slider::State::new(),
             status,
         }
     }
@@ -364,9 +379,26 @@ impl JoyconBox {
             .push(buttons)
             .push(svg);
 
-        Row::new().spacing(10).push(left).push(Text::new(format!(
-            "roll: {:.0}\npitch: {:.0}\nyaw: {:.0}",
-            self.status.rotation.0, self.status.rotation.1, self.status.rotation.2
-        )))
+        let serial_number = self.status.serial_number.clone();
+
+        let right = Column::new()
+            .spacing(10)
+            .push(Text::new(format!(
+                "roll: {:.0}\npitch: {:.0}\nyaw: {:.0}\nscale_offset: {:.0}",
+                self.status.rotation.0, self.status.rotation.1, self.status.rotation.2, self.status.degrees_offset
+            )))
+            .push(Slider::new(
+                &mut self.slider,
+                -20.0..=20.0f32,
+                self.status.degrees_offset,
+                move |deg| Message::SliderUpdate(serial_number.clone(), deg)
+            ));
+
+        Row::new().spacing(10).push(left).push(right)
+
+        // Row::new().spacing(10).push(left).push(Text::new(format!(
+        //     "roll: {:.0}\npitch: {:.0}\nyaw: {:.0}",
+        //     self.status.rotation.0, self.status.rotation.1, self.status.rotation.2
+        // )))
     }
 }

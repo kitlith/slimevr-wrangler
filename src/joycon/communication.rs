@@ -22,6 +22,7 @@ pub struct JoyconStatus {
     pub rotation: (f64, f64, f64),
     pub design: JoyconDesign,
     pub mount_rotation: i32,
+    pub degrees_offset: f32,
     pub serial_number: String,
 }
 
@@ -192,15 +193,21 @@ pub fn main_thread(
         if got_message {
             let mut statuses = Vec::new();
             for (serial_number, device) in &devices {
+                let mount_rotation;
+                let degrees_offset;
+                if let Some(js) = settings.local.joycon.get(serial_number) {
+                    mount_rotation = js.rotation;
+                    degrees_offset = js.degrees_offset;
+                } else {
+                    mount_rotation = 0;
+                    degrees_offset = 0.;
+                }
                 statuses.push(JoyconStatus {
                     connected: true,
                     rotation: device.imu.euler_angles_deg(),
                     design: device.design.clone(),
-                    mount_rotation: if let Some(js) = settings.local.joycon.get(serial_number) {
-                        js.rotation
-                    } else {
-                        0
-                    },
+                    mount_rotation,
+                    degrees_offset,
                     serial_number: serial_number.clone(),
                 });
             }

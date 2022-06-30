@@ -17,6 +17,7 @@ fn file_name() -> Option<PathBuf> {
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Joycon {
     pub rotation: i32,
+    pub degrees_offset: f32,
 }
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct WranglerSettings {

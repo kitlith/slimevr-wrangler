@@ -20,6 +20,7 @@ fn acc(n: i16) -> f64 {
 fn gyro(n: i16) -> f64 {
     n as f64
     * 0.07000839246f64 // 4588/65535 - degrees/s
+    * 360.0 / 350.0 // TEMP: calibration for right joycon
     * (std::f64::consts::PI / 180.0f64) // radians/s
 }
 
